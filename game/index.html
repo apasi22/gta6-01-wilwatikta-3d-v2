@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WILWATIKTA 3D — Open-World Crime in a Javanese Sunset City</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #1a0f2e; font-family: Verdana, Geneva, sans-serif; color: #fff; }
+  #gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  .hidden { display: none !important; }
+  #hud { position: fixed; inset: 0; pointer-events: none; z-index: 5; }
+  .panel { background: rgba(12, 8, 24, 0.72); border: 1px solid rgba(255, 207, 63, 0.35); border-radius: 10px; padding: 8px 12px; }
+  #district { position: absolute; top: 14px; left: 14px; min-width: 170px; }
+  #district-name { font-size: 20px; font-weight: bold; letter-spacing: 1px; }
+  #district-tag { font-size: 11px; color: #ffd98a; }
+  #clock { font-size: 11px; color: #cfe8ff; margin-top: 2px; }
+  #mission-banner { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); text-align: center; min-width: 380px; }
+  #mission-title { font-size: 15px; font-weight: bold; color: #ffcf3f; }
+  #mission-obj { font-size: 12px; }
+  #mission-meta { font-size: 12px; color: #fff; margin-top: 2px; }
+  #mission-timer, #mission-dist { font-weight: bold; margin: 0 8px; }
+  #stats { position: absolute; top: 14px; right: 14px; width: 190px; text-align: right; }
+  #cash { font-size: 22px; font-weight: bold; color: #7dff9a; }
+  #stars { font-size: 16px; color: #ffcf3f; letter-spacing: 2px; }
+  #wanted-label { font-size: 10px; color: #ff8a7a; letter-spacing: 1px; }
+  #weapon { font-size: 13px; font-weight: bold; margin-top: 3px; }
+  #reserve { font-size: 11px; color: #cfe8ff; }
+  .bar { height: 8px; background: rgba(255,255,255,0.22); border-radius: 4px; margin: 3px 0; overflow: hidden; }
+  #hp-fill { height: 100%; width: 100%; background: #4ade6a; }
+  #armor-fill { height: 100%; width: 0%; background: #5aa8ff; }
+  #rep { font-size: 11px; color: #ffcf3f; }
+  #minimap { position: absolute; left: 14px; bottom: 14px; width: 150px; height: 150px; border: 3px solid rgba(255,255,255,0.85); border-radius: 50%; background: #3a9bc2; }
+  #speedo { position: absolute; right: 14px; bottom: 14px; width: 120px; height: 120px; }
+  #dialogue { position: absolute; left: 50%; bottom: 118px; transform: translateX(-50%); width: 560px; text-align: left; }
+  #dlg-name { font-size: 12px; font-weight: bold; color: #ffcf3f; }
+  #dlg-text { font-size: 14px; }
+  #dispatch { position: absolute; left: 50%; bottom: 92px; transform: translateX(-50%); font-size: 12px; background: rgba(12,8,24,0.6); padding: 3px 10px; border-radius: 6px; color: #ffcf3f; white-space: nowrap; }
+  #dispatch span { color: #cfe8ff; }
+  #radio { position: absolute; left: 50%; bottom: 68px; transform: translateX(-50%); font-size: 12px; color: #ffd98a; }
+  #controls { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); font-size: 11px; color: rgba(255,255,255,0.85); background: rgba(12,8,24,0.55); padding: 3px 10px; border-radius: 6px; white-space: nowrap; }
+  #pickup-note { position: absolute; left: 50%; top: 34%; transform: translateX(-50%); font-size: 22px; font-weight: bold; color: #7dff9a; text-shadow: 0 2px 6px #000; }
+  #vignette { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(ellipse at center, transparent 55%, rgba(200,0,0,0.55) 100%); opacity: 0; z-index: 6; }
+  #district-big { position: absolute; right: 26px; top: 36%; text-align: right; transition: opacity 0.6s; text-shadow: 0 3px 10px #000; }
+  #district-big-name { font-size: 34px; font-weight: bold; font-style: italic; color: #fff; }
+  #district-big-sub { font-size: 12px; letter-spacing: 3px; color: #ffcf3f; }
+  .screen { position: fixed; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; background: rgba(10, 6, 20, 0.78); }
+  .card { background: rgba(20, 14, 38, 0.95); border: 2px solid #ffcf3f; border-radius: 14px; padding: 28px 36px; max-width: 640px; text-align: center; }
+  .card h1 { margin: 0 0 4px; font-size: 44px; letter-spacing: 3px; color: #ffcf3f; }
+  .card h2 { margin: 0 0 10px; font-size: 26px; color: #ffcf3f; }
+  .card p { font-size: 14px; line-height: 1.5; color: #e8e0ff; }
+  .card button { pointer-events: auto; display: block; width: 280px; margin: 8px auto; padding: 11px; font-size: 15px; font-weight: bold; color: #1a0f2e; background: #ffcf3f; border: 0; border-radius: 8px; cursor: pointer; }
+  .card button:hover { background: #ffd968; }
+  .card button.alt { background: #3a2d5e; color: #fff; }
+  .gold { color: #ffcf3f; }
+  #map-panel { display: flex; gap: 16px; align-items: flex-start; }
+  #mapcanvas { border: 2px solid #ffcf3f; border-radius: 8px; background: #2f88b8; }
+  #map-side { width: 280px; text-align: left; }
+  #map-missions { max-height: 380px; overflow: hidden; }
+  .map-mission { display: flex; justify-content: space-between; font-size: 12px; padding: 5px 6px; border-bottom: 1px solid rgba(255,255,255,0.15); }
+  .map-mission.done { color: #7dff9a; }
+  .map-mission.active { color: #ffcf3f; font-weight: bold; }
+  .map-mission.locked { color: #9a8fc2; }
+  #map-stats { font-size: 12px; margin-top: 10px; color: #cfe8ff; }
+</style>
+</head>
+<body>
+<canvas id="gl" aria-label="Wilwatikta 3D: drive, walk, and run missions across a Javanese sunset city"></canvas>
+<div id="vignette"></div>
+<div id="hud">
+  <div id="district" class="panel"><div id="district-name">ALUN-ALUN</div><div id="district-tag">Old square, new towers</div><div id="clock">10:30 · DAY 1</div></div>
+  <div id="mission-banner" class="panel"><div id="mission-title">MISSION 1/12</div><div id="mission-obj"></div><div id="mission-meta"><span id="mission-timer"></span><span id="mission-dist"></span></div></div>
+  <div id="stats" class="panel"><div id="cash">$1,250</div><div id="stars">☆☆☆☆☆</div><div id="wanted-label">CLEAN</div><div id="weapon">PISTOL 12</div><div id="reserve">reserve 60</div><div class="bar"><div id="hp-fill"></div></div><div class="bar"><div id="armor-fill"></div></div><div id="rep">REP LVL 1 · PENDATANG</div></div>
+  <canvas id="minimap" width="150" height="150"></canvas>
+  <canvas id="speedo" width="120" height="120"></canvas>
+  <div id="dialogue" class="panel hidden"><div id="dlg-name"></div><div id="dlg-text"></div></div>
+  <div id="dispatch">WPD DISPATCH: <span>quiet morning in Pasar Senja.</span></div>
+  <div id="radio">GAMELAN FM 101.1 · Saron Senja</div>
+  <div id="controls">WASD drive / walk · E enter or exit car · SPACE shoot / handbrake · F punch · R reload · Q weapon · T radio · G garage · Tab map · P pause · M mute · H horn</div>
+  <div id="pickup-note"></div>
+  <div id="district-big"><div id="district-big-name"></div><div id="district-big-sub"></div></div>
+</div>
+
+<div id="screen-title" class="screen"><div class="card">
+  <h1>WILWATIKTA 3D</h1>
+  <p class="gold">Open-world crime in a Javanese sunset city</p>
+  <p>Sugeng Wibowo drives, walks, steals, shoots and outruns the WPD across six districts — 12 story missions, police chases, a helicopter, roadblocks, a garage, gamelan radio and three save slots. All original. All procedural. No network.</p>
+  <button id="btn-new">NEW GAME</button>
+  <button id="btn-continue" class="alt">CONTINUE (SLOT 1)</button>
+  <button id="btn-howto" class="alt">HOW TO PLAY</button>
+  <p>WASD drive / walk · E enter car · SPACE shoot / handbrake · Tab map · P pause</p>
+</div></div>
+
+<div id="screen-pause" class="screen hidden"><div class="card">
+  <h2>PAUSED</h2>
+  <p id="pause-stats"></p>
+  <button id="btn-resume">RESUME</button>
+  <button id="btn-map" class="alt">CITY MAP</button>
+  <button id="btn-saves" class="alt">SAVE GAME</button>
+  <button id="btn-restart" class="alt">RESTART STORY</button>
+</div></div>
+
+<div id="screen-garage" class="screen hidden"><div class="card">
+  <h2>BENGKEL BAMBANG</h2>
+  <p>Bambang keeps your ride fast and your paint loud.</p>
+  <p id="garage-info"></p>
+  <p id="garage-cash" class="gold"></p>
+  <button id="btn-engine">ENGINE TUNE — $800</button>
+  <button id="btn-armor">FULL ARMOR — $500</button>
+  <button id="btn-paint">NEW PAINT — $300</button>
+  <button id="btn-garage-close" class="alt">BACK TO THE STREET</button>
+</div></div>
+
+<div id="screen-howto" class="screen hidden"><div class="card">
+  <h2>HOW TO PLAY</h2>
+  <p>Drive with WASD, steer with A/D, handbrake with SPACE. Walk with WASD, sprint with Shift. Press E near any car to steal and drive it. Shoot with the mouse or SPACE, punch with F, reload with R, switch weapons with Q or 1/2/3. Follow the gold route to the beacon to finish each mission. Lose the police by breaking line of sight — the helicopter stops your wanted level from falling. Press G at Bengkel Bambang for upgrades, Tab for the city map, T to change the radio station.</p>
+  <button id="btn-howto-close">GOT IT</button>
+</div></div>
+
+<div id="screen-passed" class="screen hidden"><div class="card">
+  <h2 id="passed-title">MISSION PASSED</h2>
+  <p id="passed-sub"></p>
+  <p id="passed-reward" class="gold"></p>
+  <button id="btn-next">CONTINUE</button>
+</div></div>
+
+<div id="screen-busted" class="screen hidden"><div class="card">
+  <h2>BUSTED</h2>
+  <p>Komisaris Wanto lets you go — lighter in the pocket, heavier in the lesson. The mission restarts.</p>
+  <button id="btn-busted">BACK ON THE STREET</button>
+</div></div>
+
+<div id="screen-wasted" class="screen hidden"><div class="card">
+  <h2>WASTED</h2>
+  <p>The city chews up drivers who stand still. Bambang patches you up — the mission restarts.</p>
+  <button id="btn-wasted">BACK ON THE STREET</button>
+</div></div>
+
+<div id="screen-saves" class="screen hidden"><div class="card">
+  <h2>SAVE GAME</h2>
+  <p>Pick a slot. Saving keeps your cash, reputation, mission and position.</p>
+  <button id="slot-0">SLOT 1</button>
+  <button id="slot-1">SLOT 2</button>
+  <button id="slot-2">SLOT 3</button>
+  <button id="btn-saves-close" class="alt">CANCEL</button>
+</div></div>
+
+<div id="screen-map" class="screen hidden"><div class="card" style="max-width:1140px;">
+  <h2>WILWATIKTA — CITY MAP</h2>
+  <div id="map-panel">
+    <canvas id="mapcanvas" width="780" height="560"></canvas>
+    <div id="map-side">
+      <div id="map-missions"></div>
+      <div id="map-stats"></div>
+      <p style="font-size:12px;">★ marks garages, docks, markets and hideouts. The gold dashed line is your route. The white arrow is Sugeng.</p>
+      <button id="btn-map-close">CLOSE MAP (TAB)</button>
+    </div>
+  </div>
+</div></div>
+
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
